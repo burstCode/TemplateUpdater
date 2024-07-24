@@ -13,7 +13,7 @@ class Program
     {
         var httpClient = new HttpClient();
         var templateClient = new TemplateClient(httpClient);
-        var localTemplateDirectory = "";
+        var localTemplateDirectory = "C:\\Users\\mikex\\source\\repos\\TemplateUpdater\\TemplateUpdater\\bin\\Debug\\net8.0\\TestFiles\\";
         var metadataFilePath = Path.Combine(localTemplateDirectory, "templates_metadata.json");
 
         var metadataService = new MetadataService(metadataFilePath);
@@ -30,7 +30,13 @@ class Program
 
             if (localTemplate == null || localTemplate.LastUpdated < template.LastUpdated)
             {
-                Console.WriteLine($"Найдено обновление для шаблона №: {template.Id}");
+                // Удаляем устаревший файл
+                if (localTemplate != null)
+                {
+                    File.Delete(Path.Combine(localTemplateDirectory, localTemplate.TemplateFilename));
+                }
+
+                Console.WriteLine($"Найдено обновление для шаблона №{template.Id}");
                 await UpdateTemplateAsync(templateClient, template, localTemplatePath);
                 UpdateLocalMetadata(localMetadata, template);
             }
