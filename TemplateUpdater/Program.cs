@@ -13,7 +13,11 @@ class Program
     {
         var httpClient = new HttpClient();
         var templateClient = new TemplateClient(httpClient);
-        var localTemplateDirectory = "C:\\Users\\mikex\\source\\repos\\TemplateUpdater\\TemplateUpdater\\bin\\Debug\\net8.0\\TestFiles\\";
+
+        // Инициализируем папочку для шаблонов
+        FileService.EnsureUploadsFolderExists();
+
+        var localTemplateDirectory = Path.Combine(Directory.GetCurrentDirectory(), "LocalTemplates");
         var metadataFilePath = Path.Combine(localTemplateDirectory, "templates_metadata.json");
 
         var metadataService = new MetadataService(metadataFilePath);
@@ -66,6 +70,7 @@ class Program
         {
             existingTemplate.LastUpdated = template.LastUpdated;
             existingTemplate.TemplateFilename = template.TemplateFilename;
+            existingTemplate.Version = template.Version;
         }
         else
         {
@@ -73,7 +78,8 @@ class Program
             {
                 Id = template.Id,
                 TemplateFilename = template.TemplateFilename,
-                LastUpdated = template.LastUpdated
+                LastUpdated = template.LastUpdated,
+                Version = template.Version
             });
         }
     }
