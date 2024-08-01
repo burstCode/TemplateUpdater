@@ -1,11 +1,6 @@
-﻿using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Http.Json;
 using TemplateUpdater.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace TemplateUpdater.Services
 {
@@ -15,30 +10,50 @@ namespace TemplateUpdater.Services
     public class TemplateClient
     {
         private readonly HttpClient _httpClient;
-        private string _baseUrl = "http://localhost:5000/api/templates";
+        private readonly string _baseUrl;
+        private readonly string _apiKey;
 
-        public TemplateClient(HttpClient httpClient)
+        public TemplateClient(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
+
+            _baseUrl = configuration["ApiSettings:BaseUrl"];
+            _apiKey = configuration["ApiSettings:ApiKey"];
         }
 
         // Получение списка шаблонов
         public async Task<List<Template>> GetTemplatesAsync()
         {
-            return await _httpClient.GetFromJsonAsync<List<Template>>($"{_baseUrl}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}");
+            request.Headers.Add("Api-Key", _apiKey);
+            var response = await _httpClient.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<Template>>();
         }
 
         // Получение данных о конкретном шаблоне
         public async Task<List<Template>> GetTemplateAsync(int id)
         {
-            return await _httpClient.GetFromJsonAsync<List<Template>>($"{_baseUrl}/{id}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/{id}");
+            request.Headers.Add("Api-Key", _apiKey);
+            var response = await _httpClient.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<Template>>();
         }
 
         // Загрузка шаблона
         public async Task<byte[]> DownloadTemplateAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/download/{id}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/download/{id}");
+            request.Headers.Add("Api-Key", _apiKey);
+            var response = await _httpClient.SendAsync(request);
+
             response.EnsureSuccessStatusCode();
+
             return await response.Content.ReadAsByteArrayAsync();
         }
     }

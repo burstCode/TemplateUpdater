@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
 using TemplateUpdater.Models;
 using TemplateUpdater.Services;
 
@@ -12,7 +10,8 @@ class Program
     static async Task Main(string[] args)
     {
         var httpClient = new HttpClient();
-        var templateClient = new TemplateClient(httpClient);
+        var host = CreateHostBuilder(args).Build();
+        var templateClient = host.Services.GetRequiredService<TemplateClient>();
 
         // Инициализируем папочку для шаблонов
         FileService.EnsureUploadsFolderExists();
@@ -41,8 +40,14 @@ class Program
                 }
 
                 Console.WriteLine($"Найдено обновление для шаблона №{template.Id}");
-                await UpdateTemplateAsync(templateClient, template, localTemplatePath);
+
+                var content = await templateClient.DownloadTemplateAsync(template.Id);
+                var filePath = Path.Combine("LocalTemplates", template.TemplateFilename);
+                await File.WriteAllBytesAsync(filePath, content);
+
                 UpdateLocalMetadata(localMetadata, template);
+
+                Console.WriteLine($"Шаблон №{template.Id} успешно обновлён.");
             }
             else
             {
@@ -53,14 +58,20 @@ class Program
         await metadataService.SaveMetadataAsync(localMetadata);
     }
 
-    // Обновление шаблона
-    private static async Task UpdateTemplateAsync(TemplateClient templateClient, Template template, string localTemplatePath)
-    {
-        var templateData = await templateClient.DownloadTemplateAsync(template.Id);
-        await File.WriteAllBytesAsync(localTemplatePath, templateData);
-        File.SetLastWriteTime(localTemplatePath, template.LastUpdated);
-        Console.WriteLine($"Шаблон №{template.Id} успешно обновлён.");
-    }
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddJsonFile("C:\\Users\\mikex\\OneDrive\\Рабочий стол\\EGISZ_Templates_Project\\TemplateUpdater\\TemplateUpdater\\appsettings.json", optional: false, reloadOnChange: true);
+            })
+            .ConfigureServices((context, services) =>
+            {
+                services.AddHttpClient<TemplateClient>(client =>
+                {
+                    client.BaseAddress = new Uri(context.Configuration["ApiSettings:BaseUrl"]);
+                });
+                services.AddSingleton<TemplateClient>();
+            });
 
     // Обновление локальных метаданных
     private static void UpdateLocalMetadata(List<Template> localMetadata, Template template)
