@@ -6,5 +6,6 @@
         public string TemplateFilename { get; set; }
         public DateTime LastUpdated { get; set; }
         public string Version { get; set; }
+        public byte[] Content { get; set; }
     }
 }
